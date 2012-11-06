@@ -1,0 +1,16 @@
+{
+  "name": "appjs-package",
+  "version": "0.0.8",
+  "description": "module for handling AppJS packaged applications",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sihorton/appjs-package.git"
+  },
+  "keywords": [
+    "appjs",
+    "package"
+  ],
+  "author": "sihorton",
+  "license": "MIT"
+}
