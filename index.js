@@ -311,6 +311,9 @@ var Me = {
 			var path = require('path');
 			var app=require('appjs');//remove me.
 			app.readPackageFile = pInfo.readPackageFile;
+			if (pInfo.isDir) {
+				app.serveFilesFrom(pInfo.path + '/content');
+			}
 			if (err) {
 				console.log(err);
 			} else {
