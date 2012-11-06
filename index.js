@@ -70,8 +70,6 @@ var Me = {
 	},checkDependancies:function(pInfo, callBack) {
 		if (pInfo._package.getEntry(Me.config.appInfoFile)) {
 			//package.json contains dependancies.
-			console.log('reading app package.json');
-			console.log(pInfo);
 			pInfo.readPackageFile(Me.config.appInfoFile,function(err,buffer) {
 				if(err) {
 					pInfo.errorTxt = "Error opening application package.json file";
@@ -83,42 +81,44 @@ var Me = {
 				for(var i in appInfo) {
 					pInfo[i] = appInfo[i];
 				}
-				callBack('',pInfo);
+				pInfo['missing'] = [];
 				console.log("\nchecking dependancies:"+pInfo['name']+" v"+pInfo['version']);
-				/*
 				//read platform dependancies...
-				fs.exists(__dirname+"/"+config.appInfoFile,function(exists) {
+				fs.exists(__dirname+"/../../"+Me.config.appInfoFile,function(exists) {
 					if (!exists) {
 						//no local dependancies...
-						console.log("no local dependancies found.");
+						//console.log("no local dependancies found.");
+						pInfo['missing'] = [];
 					} else {
-						fs.readFile(__dirname+"/"+config.appInfoFile, 'utf8', function (err,data) {
+						fs.readFile(__dirname+"/../../"+Me.config.appInfoFile, 'utf8', function (err,data) {
 						  if (err) {
 							console.log(err);
 						  } else {
 							platformInfo = JSON.parse(data);
 							//perform a comparison.
-							var missing = [];
+							pInfo.missing = [];
 							for(var i in appInfo.appdeps) {
 									var aDep = appInfo.appdeps[i];
 									if (platformInfo.appdeps[i]) {
 										pDep = platformInfo.appdeps[i];
-										if (upgradeNeeded(aDep.version,pDep.version)) {
+										if (Me.upgradeNeeded(aDep.version,pDep.version)) {
 											console.log("\t>"+aDep.name+" v"+aDep.version + " ("+pDep.version+")");
-											missing.push(aDep);
+											pInfo.missing.push(aDep);
 										} else {
 											console.log("\t+"+aDep.name+" v"+aDep.version);
 										}
 									} else {
 										console.log("\t-"+aDep.name+" v"+aDep.version);
-										missing.push(aDep);
+										pInfo.missing.push(aDep);
 									}
 								}
 							}
-							if (missing.length==0) {
-								callback(undefined,missing);
+							if (pInfo.missing.length==0) {
+								callBack('',pInfo);
 							} else {
-								downloadModules(missing,appInfo,platformInfo,function(err,downloaded) {
+console.log("missing dependancies should be downloaded..");
+console.log(pInfo.missing);
+callBack('',pInfo);												/*downloadModules(missing,appInfo,platformInfo,function(err,downloaded) {
 									var downloadModulesErr = "";
 									if (err) {
 										//there was an error downloading the modules.
@@ -154,11 +154,11 @@ var Me = {
 											}
 										});
 									}
-								});
+								});*/
 							}
 						});
 					}
-				});*/
+				});
 
 			});
 			
@@ -166,6 +166,36 @@ var Me = {
 			
 			callBack(errTxt,pInfo);
 		}
+	}/**
+	* Compare requested version number against installed version number
+	* and return true if an upgrade is needed.
+	* UpgradeNeeded("0.3.2345.5","0.3")=>true
+	* UpgradeNeeded("0.3.2345.5","0.3.2345")=>true
+	* UpgradeNeeded("0.3.2345.5","0.3.2345.5")=>false
+	* UpgradeNeeded("0.3.2345.5","0.4")=>false
+	*/
+	,upgradeNeeded:function(requested,installed) {
+		var req = requested.replace("v","").split(".");
+		var got = installed.replace("v","").split(".");
+		var diff = req.length - got.length;
+		if (diff > 0) {
+			for(var i = diff;diff>0;diff--) {
+				got.push(0);
+			}
+		} else {
+			for(var i = diff;diff<0;diff++) {
+				req.push(0);
+			}
+		}
+		for(var p=0;p<req.length;p++) {
+			if (req[p] == "x") return false;
+			var r = parseFloat(req[p]);
+			var g = parseFloat(got[p]);
+			if (r > g) return true;
+			if (r < g) return false;
+			//if equal compare next figure
+		}
+		return false;
 	}
 }
 module.exports = Me;
