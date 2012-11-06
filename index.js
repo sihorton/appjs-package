@@ -53,8 +53,13 @@ var Me = {
 						next();
 					}
 				};
-				pInfo.readPackageFile = function(filename,callback) {
+				/*pInfo.readPackageFile = function(filename,callback) {
 					fs.readFile(path.resolve(pInfo.path,filename),callback);
+				}*/
+				pInfo.readPackageFile = function(file,callback) {
+					pInfo._package.readFileAsync(file,function(buffer,err) {
+						callback(err,buffer);
+					});
 				}
 				pInfo._package = packagedApp;
 				Me.checkDependancies(pInfo, callBack);
@@ -66,6 +71,97 @@ var Me = {
 		if (pInfo._package.getEntry(Me.config.appInfoFile)) {
 			//package.json contains dependancies.
 			console.log('reading app package.json');
+			console.log(pInfo);
+			pInfo.readPackageFile(Me.config.appInfoFile,function(err,buffer) {
+				if(err) {
+					pInfo.errorTxt = "Error opening application package.json file";
+					callBack(err, pInfo);
+					return;
+				}
+				var platformInfo = {};
+				appInfo = JSON.parse(buffer.toString());
+				for(var i in appInfo) {
+					pInfo[i] = appInfo[i];
+				}
+				callBack('',pInfo);
+				console.log("\nchecking dependancies:"+pInfo['name']+" v"+pInfo['version']);
+				/*
+				//read platform dependancies...
+				fs.exists(__dirname+"/"+config.appInfoFile,function(exists) {
+					if (!exists) {
+						//no local dependancies...
+						console.log("no local dependancies found.");
+					} else {
+						fs.readFile(__dirname+"/"+config.appInfoFile, 'utf8', function (err,data) {
+						  if (err) {
+							console.log(err);
+						  } else {
+							platformInfo = JSON.parse(data);
+							//perform a comparison.
+							var missing = [];
+							for(var i in appInfo.appdeps) {
+									var aDep = appInfo.appdeps[i];
+									if (platformInfo.appdeps[i]) {
+										pDep = platformInfo.appdeps[i];
+										if (upgradeNeeded(aDep.version,pDep.version)) {
+											console.log("\t>"+aDep.name+" v"+aDep.version + " ("+pDep.version+")");
+											missing.push(aDep);
+										} else {
+											console.log("\t+"+aDep.name+" v"+aDep.version);
+										}
+									} else {
+										console.log("\t-"+aDep.name+" v"+aDep.version);
+										missing.push(aDep);
+									}
+								}
+							}
+							if (missing.length==0) {
+								callback(undefined,missing);
+							} else {
+								downloadModules(missing,appInfo,platformInfo,function(err,downloaded) {
+									var downloadModulesErr = "";
+									if (err) {
+										//there was an error downloading the modules.
+										downloadModulesErr = err;
+									} else {
+										//console.log("required modules downloaded");
+									}
+									var updating = 0;
+									for(var m=downloaded.length-1;m>-1;m--) {
+										updating++;
+										fs.readFile(config.moduleDir+downloaded[m].name+"/package.json", 'utf8', function (err,data) {
+											if (err) {
+												console.log("\tinstall failed:",err);
+											} else {
+												var modPackageInfo = JSON.parse(data);
+												  if (!platformInfo.appdeps[modPackageInfo.name]) platformInfo.appdeps[modPackageInfo.name] = {};
+												  
+												  platformInfo.appdeps[modPackageInfo.name].name = modPackageInfo.name;
+												  platformInfo.appdeps[modPackageInfo.name].version = modPackageInfo.version;
+												  if (!platformInfo.appdeps[modPackageInfo.name]['platforms']) platformInfo.appdeps[modPackageInfo.name].platforms = {};
+												  platformInfo.appdeps[modPackageInfo.name].platforms[process.platform] = process.platform;
+												console.log("\tinstalled:"+modPackageInfo.name);
+												  if (--updating<1) {
+													//modules downloaded and platform info updated.
+													fs.writeFile(__dirname+"/"+config.appInfoFile,JSON.stringify(platformInfo, null,4),function(err) {
+														if (err) {
+															callback(err,missing);
+														} else {
+															callback(downloadModulesErr,missing);
+														}
+													});
+												  }
+											}
+										});
+									}
+								});
+							}
+						});
+					}
+				});*/
+
+			});
+			
 		} else {
 			
 			callBack(errTxt,pInfo);
