@@ -309,7 +309,7 @@ var Me = {
 	},launch:function(pInfo) {
 		pInfo.readPackageFile(pInfo.launch,function(err,buffer) {
 			var path = require('path');
-			var app=require('appjs');//remove me.
+			var app=require('appjs');//try to clean this up
 			app.readPackageFile = pInfo.readPackageFile;
 			if (pInfo.isDir) {
 				app.serveFilesFrom(pInfo.path + '/content');
@@ -318,7 +318,11 @@ var Me = {
 				console.log(err);
 			} else {
 				var olddir = __dirname;
-				__dirname = path.dirname(pInfo.launch);
+				if (pInfo.isPackage) {
+					__dirname = path.dirname(pInfo.path);
+				} else {
+					__dirname = path.dirname(pInfo.launch);
+				}
 				eval(buffer.toString());
 				__dirname = olddir;
 			}
