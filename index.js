@@ -1,6 +1,5 @@
 var  AdmZip = require(__dirname+'/node_modules/adm-zip/adm-zip.js')
 	request = require('request')
-	   path = require('path')
 ;
 			
 var Me = {
@@ -28,14 +27,15 @@ var Me = {
 				pInfo.launch = pInfo.path+"/app.js";
 			}
 			if (stat.isFile()) {
-				pInfo.launch = pInfo.path;
 				pInfo.isDir = false;
 				switch(path.extname(pInfo.path||'')) {
 					case Me.config.packageExt:
 						pInfo.isPackage = true;
+						pInfo.launch = 'app.js';
 					break;
 					default:
 						pInfo.isPackage = false;
+						pInfo.launch = pInfo.path;
 					break;
 				}
 			}
@@ -308,6 +308,8 @@ var Me = {
 		
 	},launch:function(pInfo) {
 		pInfo.readPackageFile(pInfo.launch,function(err,buffer) {
+			var path = require('path');
+			var app=require('appjs');//remove me.
 			if (err) {
 				console.log(err);
 			} else {
