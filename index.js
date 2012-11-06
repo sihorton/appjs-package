@@ -8,7 +8,7 @@ var Me = {
 		,moduleDir:__dirname+"/../../node_modules/"
 		,platformDir:__dirname+"/../../"
 	},
-	getPackageInfo:function(uri, callBack) {
+	getPackageInfo:function(uri, callback) {
 		var path=require('path')
 			fs=require('fs')
 		;
@@ -16,7 +16,7 @@ var Me = {
 			path:path.resolve(uri)
 		};
 		fs.stat(pInfo.path, function(err, stat) {
-			if(err) return callBack(err,pInfo);
+			if(err) return callback(err,pInfo);
 			var errTxt = '';
 			if (stat.isDirectory()) {
 				pInfo.isPackage = false;
@@ -63,18 +63,18 @@ var Me = {
 					});
 				}
 				pInfo._package = packagedApp;
-				Me.checkDependancies(pInfo, callBack);
+				Me.checkDependancies(pInfo, callback);
 			} else {
-				callBack(errTxt,pInfo);
+				callback(errTxt,pInfo);
 			}
 		});
-	},checkDependancies:function(pInfo, callBack) {
+	},checkDependancies:function(pInfo, callback) {
 		if (pInfo._package.getEntry(Me.config.appInfoFile)) {
 			//package.json contains dependancies.
 			pInfo.readPackageFile(Me.config.appInfoFile,function(err,buffer) {
 				if(err) {
 					pInfo.errorTxt = "Error opening application package.json file";
-					callBack(err, pInfo);
+					callback(err, pInfo);
 					return;
 				}
 				var platformInfo = {};
@@ -94,6 +94,7 @@ var Me = {
 							//error loading platform package info.
 							console.log(err);
 						} else {
+							console.log("\nchecking dependancies for "+appInfo['name']+" v"+appInfo['version']);
 							platformInfo = JSON.parse(data);
 							//perform a comparison.
 							pInfo.missing = [];
@@ -114,23 +115,21 @@ var Me = {
 								}
 							}
 							if (pInfo.missing.length==0) {
-								callBack('',pInfo);
+								callback('',pInfo);
 							} else {
-								//callBack('',pInfo);			
-								Me.downloadModules(pInfo,platformInfo,function(err,downloaded) {
-									console.log("downloadModules callback.");
-								});					/*downloadModules(missing,appInfo,platformInfo,function(err,downloaded) {
+								//callback('',pInfo);			
+								Me.downloadModules(pInfo,platformInfo,function(err,pInfo) {
 									var downloadModulesErr = "";
 									if (err) {
 										//there was an error downloading the modules.
 										downloadModulesErr = err;
 									} else {
-										//console.log("required modules downloaded");
+										//console.log("required modules pInfo.missing");
 									}
 									var updating = 0;
-									for(var m=downloaded.length-1;m>-1;m--) {
+									for(var m=pInfo.missing.length-1;m>-1;m--) {
 										updating++;
-										fs.readFile(config.moduleDir+downloaded[m].name+"/package.json", 'utf8', function (err,data) {
+										fs.readFile(Me.config.moduleDir+pInfo.missing[m].name+"/package.json", 'utf8', function (err,data) {
 											if (err) {
 												console.log("\tinstall failed:",err);
 											} else {
@@ -144,18 +143,18 @@ var Me = {
 												console.log("\tinstalled:"+modPackageInfo.name);
 												  if (--updating<1) {
 													//modules downloaded and platform info updated.
-													fs.writeFile(__dirname+"/"+config.appInfoFile,JSON.stringify(platformInfo, null,4),function(err) {
+													fs.writeFile(Me.config.platformDir+Me.config.appInfoFile,JSON.stringify(platformInfo, null,4),function(err) {
 														if (err) {
-															callback(err,missing);
+															callback(err,pInfo);
 														} else {
-															callback(downloadModulesErr,missing);
+															callback(downloadModulesErr,pInfo);
 														}
 													});
 												  }
 											}
 										});
 									}
-								});*/
+								});
 							}
 						});
 					}
@@ -165,7 +164,7 @@ var Me = {
 			
 		} else {
 			
-			callBack(errTxt,pInfo);
+			callback(errTxt,pInfo);
 		}
 	}/**
 	* Compare requested version number against installed version number
@@ -197,7 +196,7 @@ var Me = {
 			//if equal compare next figure
 		}
 		return false;
-	},downloadModules:function(pInfo,platformInfo,callBack) {
+	},downloadModules:function(pInfo,platformInfo,callback) {
 		var req1 = pInfo.moduleUrl;
 		var req2 = platformInfo.moduleUrl;
 		if (Me.config.preferOfficialModules) {
@@ -218,7 +217,7 @@ var Me = {
 			} else {
 				file = aDep.name+"-"+aDep.version+"-"+process.platform+Me.config.modulePackageExt;
 			}
-			var myCallBack = callBack;
+			var myCallBack = callback;
 			Me.getModuleFile(file,req1+file,req2+file,aDep,function(err,file,aDep) {
 				if (err) {
 					console.log("\t"+err.message+":"+file);
@@ -242,7 +241,10 @@ var Me = {
 						downloadingErrorText = "failed to install required packages";
 					}
 				}
-				if (--downloading<1) myCallBack(downloadingErrorText,pInfo);
+				if (--downloading<1) {
+					pInfo.downloading = downloading;
+					myCallBack(downloadingErrorText,pInfo);
+				}
 			});
 		}
 	},getModuleFile:function(file,uri,fallbackUri,aDep,callback) {
