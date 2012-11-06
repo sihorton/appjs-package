@@ -310,6 +310,7 @@ var Me = {
 		pInfo.readPackageFile(pInfo.launch,function(err,buffer) {
 			var path = require('path');
 			var app=require('appjs');//remove me.
+			app.readPackageFile = pInfo.readPackageFile;
 			if (err) {
 				console.log(err);
 			} else {
