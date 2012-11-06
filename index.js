@@ -1,5 +1,6 @@
-var AdmZip = require(__dirname+'/node_modules/adm-zip/adm-zip.js')
-	request = require('request');
+var  AdmZip = require(__dirname+'/node_modules/adm-zip/adm-zip.js')
+	request = require('request')
+	   path = require('path')
 ;
 			
 var Me = {
@@ -23,8 +24,12 @@ var Me = {
 			var errTxt = '';
 			if (stat.isDirectory()) {
 				pInfo.isPackage = false;
+				pInfo.isDir = true;
+				pInfo.launch = pInfo.path+"/app.js";
 			}
 			if (stat.isFile()) {
+				pInfo.launch = pInfo.path;
+				pInfo.isDir = false;
 				switch(path.extname(pInfo.path||'')) {
 					case Me.config.packageExt:
 						pInfo.isPackage = true;
@@ -57,9 +62,6 @@ var Me = {
 						next();
 					}
 				};
-				/*pInfo.readPackageFile = function(filename,callback) {
-					fs.readFile(path.resolve(pInfo.path,filename),callback);
-				}*/
 				pInfo.readPackageFile = function(file,callback) {
 					pInfo._package.readFileAsync(file,function(buffer,err) {
 						callback(err,buffer);
@@ -68,6 +70,9 @@ var Me = {
 				pInfo._package = packagedApp;
 				Me.checkDependancies(pInfo, callback);
 			} else {
+				pInfo.readPackageFile = function(filename,callback) {
+					fs.readFile(path.resolve(pInfo.path,filename),callback);
+				}
 				callback(errTxt,pInfo);
 			}
 		});
@@ -301,6 +306,17 @@ var Me = {
 			}).pipe(o2);
 		}
 		
+	},launch:function(pInfo) {
+		pInfo.readPackageFile(pInfo.launch,function(err,buffer) {
+			if (err) {
+				console.log(err);
+			} else {
+				var olddir = __dirname;
+				__dirname = path.dirname(pInfo.launch);
+				eval(buffer.toString());
+				__dirname = olddir;
+			}
+		});
 	}
 }
 module.exports = Me;
