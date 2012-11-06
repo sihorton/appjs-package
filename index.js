@@ -1,4 +1,7 @@
-var request = require('request');
+var AdmZip = require(__dirname+'/node_modules/adm-zip/adm-zip.js')
+	request = require('request');
+;
+			
 var Me = {
 	config: {
 		packageExt:'.appjs'
@@ -32,8 +35,8 @@ var Me = {
 				}
 			}
 			if (pInfo.isPackage) {
-				var mime = require('mime'),
-				AdmZip = require('adm-zip');
+				var mime = require('mime')
+				;
 				var packagedApp = new AdmZip(pInfo.path);
 				pInfo.router = function router(request, response, next){
 					if (request.method === 'get') {
@@ -226,7 +229,6 @@ var Me = {
 					console.log("\tdownloaded:",file);
 					//file is downloaded try to detect if it is correct and unpack.
 					try {
-						var AdmZip = require('adm-zip');
 						var module = new AdmZip(Me.config.moduleDir+file);
 						module.extractAllTo(Me.config.moduleDir+aDep.name, /*overwrite*/true);
 						console.log("\textracted:"+file);
