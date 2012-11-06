@@ -1,6 +1,6 @@
 {
   "name": "appjs-package",
-  "version": "0.1.10",
+  "version": "0.1.12",
   "description": "module for handling AppJS packaged applications",
   "main": "index.js",
   "repository": {
@@ -10,6 +10,7 @@
   "bundleDependencies": [
     "adm-zip",
     "request"
+	//"mime"
   ],
   "keywords": [
     "appjs",
