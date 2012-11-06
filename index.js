@@ -312,7 +312,12 @@ var Me = {
 			var app=require('appjs');//try to clean this up
 			app.readPackageFile = pInfo.readPackageFile;
 			if (pInfo.isDir) {
+				//serve files from the folder.
 				app.serveFilesFrom(pInfo.path + '/content');
+			} 
+			if (pInfo.isPackage) {
+				//serve files using the package router.
+				app.router.use(pInfo.router);
 			}
 			if (err) {
 				console.log(err);
