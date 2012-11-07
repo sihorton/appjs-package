@@ -314,10 +314,19 @@ var Me = {
 				app.serveFilesFrom(pInfo.path + '/content');
 			}
 			if (err) {
-				console.log(err);
+				console.log("error:",err);
 			} else {
+				//temporary icons fix for v0.20
+				if (typeof iconsDir == "undefined") {
+					var iconsDir = __dirname + '/content/icons';
+				}
+				
 				var olddir = __dirname;
-				__dirname = path.dirname(pInfo.launch);
+				if (pInfo.isPackage) {
+					__dirname = path.dirname(pInfo.path);
+				} else {
+					__dirname = path.dirname(pInfo.launch);
+				}
 				eval(buffer.toString());
 				__dirname = olddir;
 			}
