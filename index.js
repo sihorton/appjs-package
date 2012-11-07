@@ -306,28 +306,18 @@ var Me = {
 			}).pipe(o2);
 		}
 		
-	},launch:function(pInfo) {
+	},launch:function(pInfo, app) {
 		pInfo.readPackageFile(pInfo.launch,function(err,buffer) {
 			var path = require('path');
-			var app=require('appjs');//try to clean this up
 			app.readPackageFile = pInfo.readPackageFile;
 			if (pInfo.isDir) {
-				//serve files from the folder.
 				app.serveFilesFrom(pInfo.path + '/content');
-			} 
-			if (pInfo.isPackage) {
-				//serve files using the package router.
-				app.router.use(pInfo.router);
 			}
 			if (err) {
 				console.log(err);
 			} else {
 				var olddir = __dirname;
-				if (pInfo.isPackage) {
-					__dirname = path.dirname(pInfo.path);
-				} else {
-					__dirname = path.dirname(pInfo.launch);
-				}
+				__dirname = path.dirname(pInfo.launch);
 				eval(buffer.toString());
 				__dirname = olddir;
 			}
