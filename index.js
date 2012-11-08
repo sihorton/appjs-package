@@ -12,7 +12,11 @@ var Me = {
 		,platformDir:__dirname+"/../../"
 		,gzModules:true
 	},
-	getPackageInfo:function(uri, callback) {
+	getPackageInfo:function(uri,callback) {
+		console.log("depreciated getPackageInfo called, use getPackageInfo2(uri,app,callback) instead");
+		Me.getPackageInfo2(uri, undefined, callback);
+	},
+	getPackageInfo2:function(uri, app, callback) {
 		var path=require('path')
 			fs=require('fs')
 		;
@@ -44,6 +48,7 @@ var Me = {
 				var mime = require('mime')
 				;
 				var packagedApp = new AdmZip(pInfo.path);
+				//we could skip storing this on the pInfo object.
 				pInfo.router = function router(request, response, next){
 					if (request.method === 'get') {
 						var url = request.pathname === '/' ? '/index.html' : request.pathname;
@@ -104,6 +109,11 @@ var Me = {
 							cache(iconList[i]);
 						}
 					});
+				}
+				if (app) {
+					app.router.use(pInfo.router);
+					app.readPackageFile = pInfo.readPackageFile;
+					app.prepareIcons = pInfo.prepareIcons;
 				}
 				pInfo._package = packagedApp;
 				Me.checkDependancies(pInfo, callback);
