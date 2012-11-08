@@ -106,13 +106,15 @@ var Me = {
 									if (!exists) {
 										fs.writeFile(cacheDir+cfile, buffer, function(err) {
 											if(err) console.log(err);
-											list[myFile] = cacheDir+cfile;
+											//fix for windows.
+											list[myFile] = cacheDir+cfile.split("/").join(path.sep);
 											if(--waiting ==0) {
 												callback('',list);
 											}
 										}); 
 									} else {
-										list[myFile] = cacheDir+cfile;
+										//fix for windows.
+										list[myFile] = cacheDir+cfile.split("/").join(path.sep);
 										if(--waiting ==0) {
 											callback('',list);
 										}
