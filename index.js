@@ -16,15 +16,14 @@ var Me = {
 		console.log("depreciated getPackageInfo called, use getPackageInfo2(uri,app,callback) instead");
 		Me.getPackageInfo2(uri, undefined, callback);
 	},
-	getPackageInfo2:function(uri, app, userCallback) {
+	getPackageInfo2:function(uri, pApp, userCallback) {
 		var path=require('path')
 			fs=require('fs')
 		;
 		var callback = function(err,pInfo) {
 			//read launch file and pass it back to the caller...
-			pInfo.readPackageFile(pInfo.launch,function(err,buffer) {
-				
-				userCallback(err,pInfo,buffer);
+			pInfo.readPackageFile(pInfo.launch,function(err,buffer) {		
+				userCallback(err,pInfo,buffer,pApp);
 			});
 		}
 		
@@ -38,8 +37,8 @@ var Me = {
 				pInfo.isPackage = false;
 				pInfo.isDir = true;
 				pInfo.launch = pInfo.path+"/app.js";//TODO: this is an assumption get it from package
-				if (app) {
-					app.serveFilesFrom(pInfo.path + '/content');//TODO: this is an assumption get it from package
+				if (pApp) {
+					pApp.serveFilesFrom(pInfo.path + '/content');//TODO: this is an assumption get it from package
 				}
 				
 			}
@@ -63,7 +62,6 @@ var Me = {
 				var mime = require('mime')
 				;
 				var packagedApp = new AdmZip(pInfo.path);
-				//we could skip storing this on the pInfo object.
 				pInfo.router = function router(request, response, next){
 					if (request.method === 'get') {
 						var url = request.pathname === '/' ? '/index.html' : request.pathname;
@@ -88,20 +86,21 @@ var Me = {
 						callback(err,buffer);
 					});
 				}
-				pInfo.prepareIcons = function(iconList,callback) {
+				pInfo.prepareIcons = function(iconList,iconCallBack) {
+					var Me = this;
+					var list = {};
 					var cacheDir = __dirname+path.sep+'..'+path.sep+'temp'+path.sep;
 					fs.exists(cacheDir,function(exists) {
 						if (!exists) fs.mkdirSync(cacheDir);
-						var list = {};
 						var waiting = 0;
 						var cache = function(myFile) {
 							waiting++;
-							fs.readFile(__dirname+"/"+myFile,'binary',function(err,buffer) {
+							Me.readPackageFile(myFile,function(err,buffer) {
 								if (err) console.log(err);
 								var crypto = require('crypto')
 							  , shasum = crypto.createHash('sha1');
 								shasum.update(buffer);
-								var cfile = shasum.digest('hex').toString() + path.extname(myFile);
+								var cfile = shasum.digest('hex').toString() + path.extname(myFile);			
 								fs.exists(cacheDir+cfile,function(exists) {
 									if (!exists) {
 										fs.writeFile(cacheDir+cfile, buffer, function(err) {
@@ -109,29 +108,31 @@ var Me = {
 											//fix for windows.
 											list[myFile] = cacheDir+cfile.split("/").join(path.sep);
 											if(--waiting ==0) {
-												callback('',list);
+												iconCallBack('',list);
 											}
 										}); 
 									} else {
 										//fix for windows.
 										list[myFile] = cacheDir+cfile.split("/").join(path.sep);
 										if(--waiting ==0) {
-											callback('',list);
+											iconCallBack('',list);
 										}
 									}
 								});
 							});
+							
 						}
 						for(var i=0;i<iconList.length;i++) {
 							cache(iconList[i]);
 						}
 					});
+					
 				}
 				//write to pInfo just for backwards compatability.
-				if (app) {
-					app.router.use(pInfo.router);
-					app.readPackageFile = pInfo.readPackageFile;
-					app.prepareIcons = pInfo.prepareIcons;
+				if (pApp) {
+					pApp.router.use(pInfo.router);
+					pApp.readPackageFile = pInfo.readPackageFile;
+					pApp.prepareIcons = pInfo.prepareIcons;
 				}
 				pInfo._package = packagedApp;
 				Me.checkDependancies(pInfo, callback);
@@ -147,9 +148,9 @@ var Me = {
 					}
 					callback('', list);
 				}
-				if (app) {
-					app.readPackageFile = pInfo.readPackageFile;
-					app.prepareIcons = pInfo.prepareIcons;
+				if (pApp) {
+					pApp.readPackageFile = pInfo.readPackageFile;
+					pApp.prepareIcons = pInfo.prepareIcons;
 				}
 				callback(errTxt,pInfo);
 			}
