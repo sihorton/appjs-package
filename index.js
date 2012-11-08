@@ -68,11 +68,55 @@ var Me = {
 						callback(err,buffer);
 					});
 				}
+				pInfo.prepareIcons = function(iconList,callback) {
+					var cacheDir = __dirname+path.sep+'..'+path.sep+'temp'+path.sep;
+					fs.exists(cacheDir,function(exists) {
+						if (!exists) fs.mkdirSync(cacheDir);
+						var list = {};
+						var waiting = 0;
+						var cache = function(myFile) {
+							waiting++;
+							fs.readFile(__dirname+"/"+myFile,'binary',function(err,buffer) {
+								if (err) console.log(err);
+								var crypto = require('crypto')
+							  , shasum = crypto.createHash('sha1');
+								shasum.update(buffer);
+								var cfile = shasum.digest('hex').toString() + path.extname(myFile);
+								fs.exists(cacheDir+cfile,function(exists) {
+									if (!exists) {
+										fs.writeFile(cacheDir+cfile, buffer, function(err) {
+											if(err) console.log(err);
+											list[myFile] = cacheDir+cfile;
+											if(--waiting ==0) {
+												callback('',list);
+											}
+										}); 
+									} else {
+										list[myFile] = cacheDir+cfile;
+										if(--waiting ==0) {
+											callback('',list);
+										}
+									}
+								});
+							});
+						}
+						for(var i=0;i<iconList.length;i++) {
+							cache(iconList[i]);
+						}
+					});
+				}
 				pInfo._package = packagedApp;
 				Me.checkDependancies(pInfo, callback);
 			} else {
 				pInfo.readPackageFile = function(filename,callback) {
 					fs.readFile(path.resolve(pInfo.path,filename),callback);
+				}
+				pInfo.prepareIcons = function(iconList,callback) {
+					var list = {};
+					for(var i=0;i<iconList.length;i++) {
+						list[iconList[i]] = __dirname+path.sep+iconList[i];
+					}
+					callback('', list);
 				}
 				callback(errTxt,pInfo);
 			}
