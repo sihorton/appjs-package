@@ -23,11 +23,6 @@ var Me = {
 		var callback = function(err,pInfo) {
 			//read launch file and pass it back to the caller...
 			pInfo.readPackageFile(pInfo.launch,function(err,buffer) {
-				if (pInfo.isPackage) {
-					pInfo.launchDir = path.dirname(pInfo.path);
-				} else {
-					pInfo.launchDir = path.dirname(pInfo.launch);
-				}
 				
 				userCallback(err,pInfo,buffer);
 			});
@@ -54,13 +49,16 @@ var Me = {
 					case Me.config.packageExt:
 						pInfo.isPackage = true;
 						pInfo.launch = 'app.js';//TODO: this is an assumption get it from package
+						pInfo.launchDir = path.dirname(pInfo.path);
 					break;
 					default:
 						pInfo.isPackage = false;
 						pInfo.launch = pInfo.path;
+						pInfo.launchDir = path.dirname(pInfo.launch);
 					break;
 				}
 			}
+			
 			if (pInfo.isPackage) {
 				var mime = require('mime')
 				;
