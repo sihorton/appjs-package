@@ -10,6 +10,7 @@ var Me = {
 		,preferOfficialModules:false
 		,moduleDir:__dirname+"/../../node_modules/"
 		,platformDir:__dirname+"/../../"
+		,gzModules:true
 	},
 	getPackageInfo:function(uri, callback) {
 		var path=require('path')
@@ -231,7 +232,6 @@ var Me = {
 					console.log("\t"+err.message+":"+file);
 					downloadingErrorText = "failed to install required packages";
 				} else {
-					console.log("\tdownloaded:",file);
 					//file is downloaded try to detect if it is correct and unpack.
 					try {
 						var module = new AdmZip(Me.config.moduleDir+file);
@@ -256,8 +256,12 @@ var Me = {
 		}
 	},getModuleFile:function(file,uri,fallbackUri,aDep,callback) {
 	
-		console.log("\t"+uri);
-		var o = fs.createWriteStream(Me.config.moduleDir+file);
+		var o;
+		if (Me.config.gzModules) {
+			o = fs.createWriteStream(Me.config.moduleDir+file+'.gz');
+		} else {
+			o = fs.createWriteStream(Me.config.moduleDir+file);
+		}
 		o.cancel = false;
 		o.on('error',function(err) {
 			console.log("Error unable to write module file",err);
@@ -265,18 +269,49 @@ var Me = {
 		});
 		o.on('close',function(err) {
 			if (!this.cancel) {
-				callback(err,file,aDep);
+				if (Me.config.gzModules) {
+					//decompress the module...
+					console.log("\tdownloaded: ",file+'.gz');
+					var zlib = require('zlib');
+					var gzip = zlib.createGunzip();
+					var inp = fs.createReadStream(Me.config.moduleDir+file+'.gz');
+					var out = fs.createWriteStream(Me.config.moduleDir+file);
+					out.on('close',function() {
+						fs.unlink(file+'.gz');
+						console.log("\tdecompressed: ",file+'.gz');
+						callback(err,file,aDep);
+					}).on('error',function(err) {
+						callback(err,file,aDep);
+					});
+					inp.pipe(gzip).pipe(out);
+				} else {
+					console.log("\tdownloaded:",file);
+					callback(err,file,aDep);
+				}
 			}
 		});
-		request(uri,function(error,response,body) {
-			if (response.statusCode != 200) {
-				//file is missing even if download was ok.
-				o.cancel = true;
-				o.destroy();
-				callback(new Error(response.statusCode+' http error'),file,aDep);
-			}
-		})
-		.on('error',function(err1) {
+		if (Me.config.gzModules) {
+			console.log("\t"+uri+'.gz');
+			var r = request(uri+'.gz',function(error,response,body) {
+				if (response.statusCode != 200) {
+					//file is missing even if download was ok.
+					o.cancel = true;
+					o.destroy();
+					callback(new Error(response.statusCode+' http error'),file,aDep);
+				}
+			});
+		} else {
+			console.log("\t"+uri);
+			var r = request(uri,function(error,response,body) {
+				if (response.statusCode != 200) {
+					//file is missing even if download was ok.
+					o.cancel = true;
+					o.destroy();
+					callback(new Error(response.statusCode+' http error'),file,aDep);
+				}
+			});
+		}
+		r.on('error',function(err1) {
 			o.cancel = true;
 			o.destroy();
 			fallback(file,uri,fallbackUri,aDep,callback);
@@ -316,7 +351,6 @@ var Me = {
 			if (err) {
 				console.log("error:",err);
 			} else {
-				//temporary icons fix for v0.20
 				if (typeof iconsDir == "undefined") {
 					var iconsDir = __dirname + '/content/icons';
 				}
