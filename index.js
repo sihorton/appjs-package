@@ -16,10 +16,23 @@ var Me = {
 		console.log("depreciated getPackageInfo called, use getPackageInfo2(uri,app,callback) instead");
 		Me.getPackageInfo2(uri, undefined, callback);
 	},
-	getPackageInfo2:function(uri, app, callback) {
+	getPackageInfo2:function(uri, app, userCallback) {
 		var path=require('path')
 			fs=require('fs')
 		;
+		var callback = function(err,pInfo) {
+			//read launch file and pass it back to the caller...
+			pInfo.readPackageFile(pInfo.launch,function(err,buffer) {
+				if (pInfo.isPackage) {
+					pInfo.launchDir = path.dirname(pInfo.path);
+				} else {
+					pInfo.launchDir = path.dirname(pInfo.launch);
+				}
+				
+				userCallback(err,pInfo,buffer);
+			});
+		}
+		
 		var pInfo = {
 			path:path.resolve(uri)
 		};
@@ -29,14 +42,18 @@ var Me = {
 			if (stat.isDirectory()) {
 				pInfo.isPackage = false;
 				pInfo.isDir = true;
-				pInfo.launch = pInfo.path+"/app.js";
+				pInfo.launch = pInfo.path+"/app.js";//TODO: this is an assumption get it from package
+				if (app) {
+					app.serveFilesFrom(pInfo.path + '/content');//TODO: this is an assumption get it from package
+				}
+				
 			}
 			if (stat.isFile()) {
 				pInfo.isDir = false;
 				switch(path.extname(pInfo.path||'')) {
 					case Me.config.packageExt:
 						pInfo.isPackage = true;
-						pInfo.launch = 'app.js';
+						pInfo.launch = 'app.js';//TODO: this is an assumption get it from package
 					break;
 					default:
 						pInfo.isPackage = false;
@@ -110,6 +127,7 @@ var Me = {
 						}
 					});
 				}
+				//write to pInfo just for backwards compatability.
 				if (app) {
 					app.router.use(pInfo.router);
 					app.readPackageFile = pInfo.readPackageFile;
@@ -118,6 +136,7 @@ var Me = {
 				pInfo._package = packagedApp;
 				Me.checkDependancies(pInfo, callback);
 			} else {
+				//write to pInfo just for backwards compatability.
 				pInfo.readPackageFile = function(filename,callback) {
 					fs.readFile(path.resolve(pInfo.path,filename),callback);
 				}
@@ -127,6 +146,10 @@ var Me = {
 						list[iconList[i]] = __dirname+path.sep+iconList[i];
 					}
 					callback('', list);
+				}
+				if (app) {
+					app.readPackageFile = pInfo.readPackageFile;
+					app.prepareIcons = pInfo.prepareIcons;
 				}
 				callback(errTxt,pInfo);
 			}
