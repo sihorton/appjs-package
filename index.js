@@ -91,6 +91,7 @@ var Me = {
 						callback(err,buffer);
 					});
 				}
+				//depreciated!
 				pInfo.prepareIcons = function(iconList,iconCallBack) {
 					var Me = this;
 					var list = {};
@@ -129,6 +130,95 @@ var Me = {
 						}
 						for(var i=0;i<iconList.length;i++) {
 							cache(iconList[i]);
+						}
+					});
+					
+				}
+				pInfo.prepareResources = function(resList,resCallBack) {
+					var Me = this;
+					if (!pInfo['resList']) pInfo.resList = {};
+					
+					var cacheDir = __dirname+path.sep+'..'+path.sep+'temp'+path.sep;
+					fs.exists(cacheDir,function(exists) {
+						if (!exists) fs.mkdirSync(cacheDir);
+						var waiting = 0;
+						var cache = function(myFile) {
+							if (myFile.charAt( myFile.length-1 ) == "/") {
+								/**
+								* We currently simply use a sha1 of the full pathname to the .appjs file.
+								* then extract all resources their.
+								*/
+								var crypto = require('crypto')
+								  , shasum = crypto.createHash('sha1');
+								shasum.update(pInfo.path);
+								var outdir = path.resolve(cacheDir)+path.sep+shasum.digest('hex').toString()+path.sep;
+								pInfo.resList[myFile] = outdir;
+								try {
+									fs.mkdirSync(outdir);
+								} catch(e) {
+									//console.log(e);
+								}
+								waiting++;
+								var dirWaiting = 0;
+								var extractFile = function(pInfo,outdir,from,to,callback) {
+									Me.readPackageFile(from,function(err,buffer) {
+									//pInfo._package.readFileAsync(from,function(buffer,err) {
+										if (err) console.log("package read file error:",err);
+										fs.writeFile(outdir+to, buffer, function(err) {
+											if(err) console.log("write file error:",err);
+											callback(err,from);
+										}); 
+									});
+								}
+								//loop through all files in the package and then extract 
+								//any that match the directory path we were passed.
+								//ToDo: only supports one level of hierarchy at the moment.
+								var all = pInfo._package.getEntries();
+								for(var i=0;i<all.length;i++) {
+									if (all[i].entryName.substring(0,myFile.length) == myFile) {
+										dirWaiting++;
+										extractFile(pInfo,outdir,all[i].entryName,all[i].entryName.substring(myFile.length-1),function(err) {
+											if(--dirWaiting ==0) {
+												if(--waiting ==0) {
+													resCallBack('',pInfo.resList);
+												}
+											}
+										});
+										
+									}
+								}
+								
+							} else {
+								waiting++;
+								Me.readPackageFile(myFile,function(err,buffer) {
+									if (err) console.log(err);
+									var crypto = require('crypto')
+								  , shasum = crypto.createHash('sha1');
+									shasum.update(buffer);
+									var cfile = shasum.digest('hex').toString() + path.extname(myFile);			
+									fs.exists(cacheDir+cfile,function(exists) {
+										if (!exists) {
+											fs.writeFile(cacheDir+cfile, buffer, function(err) {
+												if(err) console.log(err);
+												//fix for windows.
+												pInfo.resList[myFile] = cacheDir+cfile.split("/").join(path.sep);
+												if(--waiting ==0) {
+													resCallBack('',list);
+												}
+											}); 
+										} else {
+											//fix for windows.
+											pInfo.resList[myFile] = cacheDir+cfile.split("/").join(path.sep);
+											if(--waiting ==0) {
+												resCallBack('',list);
+											}
+										}
+									});
+								});
+							}
+						}
+						for(var i=0;i<resList.length;i++) {
+							cache(resList[i]);
 						}
 					});
 					
