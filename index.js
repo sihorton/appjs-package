@@ -50,6 +50,11 @@ var Me = {
 						pInfo.launch = 'app.js';//TODO: this is an assumption get it from package
 						pInfo.launchDir = path.dirname(pInfo.path);
 					break;
+					case '.js':
+						pInfo.isPackage = false;
+						pInfo.launch = pInfo.path;
+						pInfo.launchDir = path.dirname(pInfo.launch);
+					break;
 					default:
 						pInfo.isPackage = false;
 						pInfo.launch = pInfo.path;
